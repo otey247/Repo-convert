@@ -145,7 +145,7 @@ def test_non_md_files_copied():
 # ---------------------------------------------------------------------------
 
 
-def test_binary_non_md_files_are_copied():
+def test_binary_non_markdown_files_are_copied():
     """Binary files without .md extension are copied in their original format."""
     with tempfile.TemporaryDirectory() as src, tempfile.TemporaryDirectory() as out:
         pdf_bytes = b"%PDF-1.7\n%\xe2\xe3\xcf\xd3\n1 0 obj\n<< /Type /Catalog >>\n\x00"
