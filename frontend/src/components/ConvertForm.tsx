@@ -454,7 +454,7 @@ const ConvertForm: React.FC = () => {
       {jobStatus?.status === 'failed' && (
         <div style={styles.errorBox}>
           <strong>Conversion failed:</strong>{' '}
-          {jobStatus.error || 'An unknown error occurred during processing.'}
+          {jobStatus.error_message || 'An unknown error occurred during processing.'}
         </div>
       )}
     </form>

@@ -8,8 +8,10 @@ from __future__ import annotations
 
 import logging
 import os
+import posixpath
+import shutil
 import zipfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 logger = logging.getLogger(__name__)
 
@@ -37,8 +39,25 @@ def extract_zip(zip_path: str, dest_dir: str) -> str:
 
     with zipfile.ZipFile(zip_path, "r") as zf:
         for member in zf.infolist():
-            # Normalise separators and resolve the candidate path
-            member_path = dest / Path(member.filename)
+            # Normalise separators: treat name as POSIX, replace backslashes,
+            # reject drive letters / UNC paths to harden against traversal.
+            raw_name = member.filename.replace("\\", "/")
+            # Reject Windows drive letters (e.g. "C:/...") and UNC paths
+            if len(raw_name) >= 2 and raw_name[1] == ":":
+                logger.warning("Skipping member with drive letter: %s", member.filename)
+                continue
+            if raw_name.startswith("//"):
+                logger.warning("Skipping UNC-style member: %s", member.filename)
+                continue
+            # Normalise (collapse .., redundant slashes) via posixpath
+            normalised = posixpath.normpath(raw_name)
+            if normalised.startswith("..") or normalised.startswith("/"):
+                logger.warning(
+                    "Skipping potentially unsafe ZIP member: %s", member.filename
+                )
+                continue
+
+            member_path = dest / PurePosixPath(normalised)
             resolved = member_path.resolve()
 
             try:
@@ -54,7 +73,7 @@ def extract_zip(zip_path: str, dest_dir: str) -> str:
             else:
                 resolved.parent.mkdir(parents=True, exist_ok=True)
                 with zf.open(member) as src, resolved.open("wb") as dst:
-                    dst.write(src.read())
+                    shutil.copyfileobj(src, dst)
 
     logger.info("Extracted %s to %s", zip_path, dest)
     return str(dest)

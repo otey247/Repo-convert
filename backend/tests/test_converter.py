@@ -100,18 +100,24 @@ def test_mixed_case_md_extension():
 
 
 def test_collision_handling():
-    """When file.txt already exists, the .md is saved as file.converted.txt."""
+    """When both file.md and file.txt exist in the source, collision is handled."""
     with tempfile.TemporaryDirectory() as src, tempfile.TemporaryDirectory() as out:
+        # Both files exist in the *source* repository.
         _write(Path(src), "notes.md", "markdown notes")
         _write(Path(src), "notes.txt", "existing txt")
 
-        # Pre-populate output dir with the existing .txt so collision is triggered
-        _write(Path(out), "notes.txt", "existing txt")
-
         result = convert_repository(src, out)
 
+        # Existing notes.txt from source must be preserved.
+        existing_txt = Path(out) / "notes.txt"
+        assert existing_txt.exists(), "Expected original notes.txt to be preserved"
+        assert existing_txt.read_text() == "existing txt"
+
+        # Converted Markdown should be written to notes.converted.txt due to collision.
         converted = Path(out) / "notes.converted.txt"
         assert converted.exists(), "Expected notes.converted.txt due to collision"
+        assert converted.read_text() == "markdown notes"
+
         assert result.md_converted == 1
 
 
@@ -216,3 +222,45 @@ def test_mappings_recorded():
         assert actions.get("a.md") == "convert"
         assert actions.get("b.py") == "copy"
         assert actions.get("c.bin") == "skip"
+
+
+# ---------------------------------------------------------------------------
+# 10. .git directory is excluded
+# ---------------------------------------------------------------------------
+
+
+def test_git_directory_excluded():
+    """Files inside .git/ are excluded from conversion and copy."""
+    with tempfile.TemporaryDirectory() as src, tempfile.TemporaryDirectory() as out:
+        _write(Path(src), ".git/config", "[core]\n\tbare = false")
+        _write(Path(src), ".git/HEAD", "ref: refs/heads/main")
+        _write(Path(src), "README.md", "# Readme")
+        _write(Path(src), "src/main.py", "print('hello')")
+
+        result = convert_repository(src, out)
+
+        # .git files should be excluded entirely
+        assert not (Path(out) / ".git").exists()
+        assert result.total_files == 2  # README.md + src/main.py only
+        assert result.md_converted == 1
+        assert (Path(out) / "README.txt").exists()
+        assert (Path(out) / "src" / "main.py").exists()
+
+
+# ---------------------------------------------------------------------------
+# 11. Binary .md files are skipped
+# ---------------------------------------------------------------------------
+
+
+def test_binary_md_file_skipped():
+    """A .md file containing null bytes is treated as binary and skipped."""
+    with tempfile.TemporaryDirectory() as src, tempfile.TemporaryDirectory() as out:
+        _write(Path(src), "binary.md", b"\x00\x01\x02 not real markdown")
+        _write(Path(src), "good.md", "real markdown")
+
+        result = convert_repository(src, out)
+
+        assert result.md_converted == 1
+        assert "binary.md" in result.skipped[0]
+        assert not (Path(out) / "binary.txt").exists()
+        assert (Path(out) / "good.txt").exists()

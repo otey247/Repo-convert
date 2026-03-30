@@ -67,6 +67,7 @@ class JobStatusResponse(BaseModel):
     status: JobStatus
     progress: int = Field(0, ge=0, le=100)
     summary: Optional[ConversionSummary] = None
+    error_message: Optional[str] = None
 
 
 # ---------------------------------------------------------------------------

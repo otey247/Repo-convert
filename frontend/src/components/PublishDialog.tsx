@@ -148,10 +148,10 @@ const PublishDialog: React.FC<Props> = ({ jobId, onClose }) => {
     setLoading(true);
     try {
       const result = await publishToGithub(jobId, repoName.trim(), token.trim(), description.trim());
-      if (result.success && result.repo_url) {
+      if (result.repo_url) {
         setRepoUrl(result.repo_url);
       } else {
-        setError(result.error || 'Publish failed. Please try again.');
+        setError('Publish failed. Please try again.');
       }
     } catch (err: any) {
       setError(err.message || 'Failed to publish to GitHub.');

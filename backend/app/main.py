@@ -29,8 +29,17 @@ logger = logging.getLogger(__name__)
 # CORS origins (resolved once at import time)
 # ---------------------------------------------------------------------------
 
-_raw_origins = os.getenv("ALLOWED_ORIGINS", "*")
+_raw_origins = os.getenv(
+    "ALLOWED_ORIGINS",
+    "http://localhost:3000,http://127.0.0.1:3000",
+)
 _origins = [o.strip() for o in _raw_origins.split(",") if o.strip()]
+
+if "*" in _origins:
+    raise ValueError(
+        "ALLOWED_ORIGINS='*' is not allowed when CORS allow_credentials=True. "
+        "Set ALLOWED_ORIGINS to a comma-separated list of explicit origins."
+    )
 
 
 # ---------------------------------------------------------------------------

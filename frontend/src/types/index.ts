@@ -16,16 +16,15 @@ export interface JobStatus {
   status: 'pending' | 'processing' | 'completed' | 'failed';
   progress: number;
   summary?: ConversionSummary;
-  error?: string;
+  error_message?: string;
 }
 
 export interface FilePreview {
   original: string;
   converted: string;
+  action?: string;
 }
 
 export interface PublishResult {
-  success: boolean;
   repo_url?: string;
-  error?: string;
 }

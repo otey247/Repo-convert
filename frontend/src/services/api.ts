@@ -3,13 +3,14 @@ import { JobResponse, JobStatus, FilePreview, PublishResult } from '../types';
 const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 export async function submitGithubJob(url: string, token?: string): Promise<JobResponse> {
-  const body: Record<string, string> = { url };
-  if (token) body.token = token;
+  const formData = new FormData();
+  formData.append('source_type', token ? 'github_private' : 'github_public');
+  formData.append('github_url', url);
+  if (token) formData.append('github_token', token);
 
-  const response = await fetch(`${BASE_URL}/api/jobs/github`, {
+  const response = await fetch(`${BASE_URL}/api/jobs`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+    body: formData,
   });
 
   if (!response.ok) {
@@ -22,9 +23,10 @@ export async function submitGithubJob(url: string, token?: string): Promise<JobR
 
 export async function submitZipJob(file: File): Promise<JobResponse> {
   const formData = new FormData();
+  formData.append('source_type', 'zip_upload');
   formData.append('file', file);
 
-  const response = await fetch(`${BASE_URL}/api/jobs/zip`, {
+  const response = await fetch(`${BASE_URL}/api/jobs`, {
     method: 'POST',
     body: formData,
   });
@@ -95,7 +97,7 @@ export async function publishToGithub(
   const response = await fetch(`${BASE_URL}/api/jobs/${jobId}/publish`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ repo_name: repoName, token, description }),
+    body: JSON.stringify({ repo_name: repoName, github_token: token, description }),
   });
 
   if (!response.ok) {
@@ -103,7 +105,8 @@ export async function publishToGithub(
     throw new Error(err.detail || `Request failed: ${response.status}`);
   }
 
-  return response.json();
+  const data = await response.json();
+  return { repo_url: data.repo_url };
 }
 
 export async function getFilePreview(jobId: string): Promise<FilePreview[]> {
@@ -114,5 +117,12 @@ export async function getFilePreview(jobId: string): Promise<FilePreview[]> {
     throw new Error(err.detail || `Request failed: ${response.status}`);
   }
 
-  return response.json();
+  const data = await response.json();
+  // Backend returns PreviewResponse { job_id, mappings: [{source_path, output_path, action}] }
+  // Map to the frontend FilePreview type
+  return (data.mappings || []).map((m: { source_path: string; output_path: string; action: string }) => ({
+    original: m.source_path,
+    converted: m.output_path || `(${m.action})`,
+    action: m.action,
+  }));
 }

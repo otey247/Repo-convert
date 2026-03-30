@@ -55,13 +55,21 @@ def _reaper() -> None:
 
 
 def _evict_stale_jobs() -> None:
-    """Remove temp dirs for jobs older than ``_MAX_JOB_AGE_SECS``."""
+    """Remove temp dirs for jobs older than ``_MAX_JOB_AGE_SECS``.
+
+    Only terminal jobs (completed/failed) are eligible for eviction so that
+    long-running or stuck processing jobs are not cleaned up mid-run.
+    """
     now = time.time()
     with _jobs_lock:
         stale = [
             jid
             for jid, state in _jobs.items()
-            if state.created_at and (now - state.created_at) > _MAX_JOB_AGE_SECS
+            if (
+                state.created_at
+                and (now - state.created_at) > _MAX_JOB_AGE_SECS
+                and state.status in (JobStatus.completed, JobStatus.failed)
+            )
         ]
     for jid in stale:
         _cleanup_job(jid)
@@ -172,6 +180,17 @@ def _cleanup_job(job_id: str) -> None:
     if state and state.work_dir and Path(state.work_dir).exists():
         shutil.rmtree(state.work_dir, ignore_errors=True)
         logger.debug("Cleaned up work_dir for job %s", job_id)
+    if state and state.source_zip_path and os.path.exists(state.source_zip_path):
+        try:
+            os.remove(state.source_zip_path)
+            logger.debug("Cleaned up source_zip_path for job %s", job_id)
+        except OSError as exc:
+            logger.warning(
+                "Failed to remove source_zip_path %s for job %s: %s",
+                state.source_zip_path,
+                job_id,
+                exc,
+            )
 
 
 def _run_job(job_id: str) -> None:

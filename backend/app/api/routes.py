@@ -14,6 +14,7 @@ from __future__ import annotations
 import logging
 import os
 import tempfile
+import shutil
 from typing import Optional
 
 import requests
@@ -92,11 +93,11 @@ async def create_job(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="A ZIP file must be uploaded when source_type is 'zip_upload'.",
             )
-        # Persist the upload to a temp file so the background thread can read it
+        # Persist the upload to a temp file so the background thread can read it.
+        # Stream in chunks to avoid loading the entire archive into memory.
         tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".zip", prefix="upload-")
         try:
-            contents = await file.read()
-            tmp.write(contents)
+            shutil.copyfileobj(file.file, tmp, length=64 * 1024)
             tmp.flush()
             source_zip_path = tmp.name
         finally:
@@ -144,6 +145,7 @@ def get_job_status(job_id: str):
         status=state.status,
         progress=state.progress,
         summary=state.summary,
+        error_message=state.error_message,
     )
 
 
