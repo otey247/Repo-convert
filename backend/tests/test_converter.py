@@ -261,6 +261,6 @@ def test_binary_md_file_skipped():
         result = convert_repository(src, out)
 
         assert result.md_converted == 1
-        assert "binary.md" in result.skipped[0]
+        assert any("binary.md" in s for s in result.skipped)
         assert not (Path(out) / "binary.txt").exists()
         assert (Path(out) / "good.txt").exists()

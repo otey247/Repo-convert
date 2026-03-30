@@ -122,7 +122,7 @@ export async function getFilePreview(jobId: string): Promise<FilePreview[]> {
   // Map to the frontend FilePreview type
   return (data.mappings || []).map((m: { source_path: string; output_path: string; action: string }) => ({
     original: m.source_path,
-    converted: m.output_path || `(${m.action})`,
+    converted: m.output_path || '',
     action: m.action,
   }));
 }

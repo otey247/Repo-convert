@@ -43,7 +43,7 @@ def extract_zip(zip_path: str, dest_dir: str) -> str:
             # reject drive letters / UNC paths to harden against traversal.
             raw_name = member.filename.replace("\\", "/")
             # Reject Windows drive letters (e.g. "C:/...") and UNC paths
-            if len(raw_name) >= 2 and raw_name[1] == ":":
+            if len(raw_name) >= 2 and raw_name[0].isalpha() and raw_name[1] == ":":
                 logger.warning("Skipping member with drive letter: %s", member.filename)
                 continue
             if raw_name.startswith("//"):
