@@ -1,8 +1,8 @@
 """Markdown-to-plain-text conversion logic.
 
 Converts all .md / .MD files in a source directory to .txt files in an
-output directory while preserving the full directory structure.  All
-other non-binary files are copied unchanged.  The source directory is
+output directory while preserving the full directory structure. All
+other non-Markdown files are copied unchanged. The source directory is
 never modified.
 """
 
@@ -105,8 +105,9 @@ def convert_repository(source_dir: str, output_dir: str) -> ConversionResult:
     2. Second pass — convert ``.md`` / ``.MD`` files, using collision-safe
        naming when a sibling ``.txt`` already exists in the source or output.
 
-    Binary files (regardless of extension) are skipped.  The original
-    *source_dir* is never modified.
+    Non-Markdown files are copied in their original format, including
+    binary assets such as documents and images. Binary ``.md`` files are
+    skipped. The original *source_dir* is never modified.
 
     Args:
         source_dir: Absolute path to the cloned / extracted repository.
@@ -141,16 +142,11 @@ def convert_repository(source_dir: str, output_dir: str) -> ConversionResult:
     for rel_path in non_md_files:
         abs_src = src / rel_path
         try:
-            if _is_binary(abs_src):
-                result.skipped.append(str(rel_path))
-                result.mappings.append((str(rel_path), "", "skip"))
-                logger.debug("Skipped binary file: %s", rel_path)
-            else:
-                abs_dst = out / rel_path
-                abs_dst.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(abs_src, abs_dst)
-                result.mappings.append((str(rel_path), str(rel_path), "copy"))
-                logger.debug("Copied %s", rel_path)
+            abs_dst = out / rel_path
+            abs_dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(abs_src, abs_dst)
+            result.mappings.append((str(rel_path), str(rel_path), "copy"))
+            logger.debug("Copied %s", rel_path)
         except (OSError, IOError, PermissionError, shutil.Error) as exc:
             msg = f"{rel_path}: {exc}"
             result.errors.append(msg)

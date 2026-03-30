@@ -141,22 +141,24 @@ def test_non_md_files_copied():
 
 
 # ---------------------------------------------------------------------------
-# 6. Binary files are skipped
+# 6. Non-Markdown binary files are copied unchanged
 # ---------------------------------------------------------------------------
 
 
-def test_binary_files_are_skipped():
-    """Binary files (containing null bytes) without .md extension are skipped."""
+def test_binary_non_md_files_are_copied():
+    """Binary files without .md extension are copied in their original format."""
     with tempfile.TemporaryDirectory() as src, tempfile.TemporaryDirectory() as out:
-        # Write a file with a null byte — heuristic binary detector will flag it
-        _write(Path(src), "image.png", b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR")
+        pdf_bytes = b"%PDF-1.7\n%\xe2\xe3\xcf\xd3\n1 0 obj\n<< /Type /Catalog >>\n\x00"
+        docx_bytes = b"PK\x03\x04\x14\x00\x06\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        _write(Path(src), "files/report.pdf", pdf_bytes)
+        _write(Path(src), "files/template.docx", docx_bytes)
         _write(Path(src), "readme.md", "text content")
 
         result = convert_repository(src, out)
 
-        assert len(result.skipped) == 1
-        assert "image.png" in result.skipped[0]
-        assert not (Path(out) / "image.png").exists()
+        assert result.skipped == []
+        assert (Path(out) / "files" / "report.pdf").read_bytes() == pdf_bytes
+        assert (Path(out) / "files" / "template.docx").read_bytes() == docx_bytes
         assert result.md_converted == 1
 
 
@@ -221,7 +223,7 @@ def test_mappings_recorded():
         actions = {m[0]: m[2] for m in result.mappings}
         assert actions.get("a.md") == "convert"
         assert actions.get("b.py") == "copy"
-        assert actions.get("c.bin") == "skip"
+        assert actions.get("c.bin") == "copy"
 
 
 # ---------------------------------------------------------------------------
