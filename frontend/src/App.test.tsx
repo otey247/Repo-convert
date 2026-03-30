@@ -2,8 +2,19 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import App from './App';
 
-test('renders learn react link', () => {
+test('renders Repo-convert title', () => {
   render(<App />);
-  const linkElement = screen.getByText(/learn react/i);
-  expect(linkElement).toBeInTheDocument();
+  expect(screen.getByText('Repo-convert')).toBeInTheDocument();
+});
+
+test('renders app subtitle', () => {
+  render(<App />);
+  expect(
+    screen.getByText(/Convert repository Markdown files to plain text/i)
+  ).toBeInTheDocument();
+});
+
+test('renders Convert Repository button', () => {
+  render(<App />);
+  expect(screen.getByRole('button', { name: /Convert Repository/i })).toBeInTheDocument();
 });
