@@ -218,8 +218,8 @@ REACT_APP_API_URL=http://localhost:8000   # Backend base URL
    `README.md` → `README.txt`
 2. File **content is preserved as-is** — no HTML rendering, no stripping.
 3. If a `.txt` with the same name already exists in the output folder, the converted file is named `<stem>.converted.txt` to avoid collisions.
-4. All non-Markdown files are copied unchanged.
-5. Binary files (detected via null-byte heuristic) are **skipped** — they are not copied.
+4. All non-Markdown files are copied unchanged, including binary files such as `.docx`, `.pdf`, and images.
+5. Binary files with a `.md` extension (detected via null-byte heuristic) are **skipped** to avoid producing invalid `.txt` output.
 6. The source repository is **never modified**.
 7. UTF-8 encoding is preserved.
 8. Full directory structure is recreated in the output.
@@ -254,4 +254,3 @@ docker compose up
 2. Background jobs use Python threading — sufficient for development. For production, replace `job_service.py` with Celery + Redis.
 3. GitHub publishing requires the token holder to have permission to create repositories under their own account.
 4. Binary files are identified by a null-byte probe of the first 8 KB (same heuristic as `git diff`).
-
